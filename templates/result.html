@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>설문 결과</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f172a;
+      --surface: #1e293b;
+      --border:  #334155;
+      --accent:  #38bdf8;
+      --accent2: #818cf8;
+      --green:   #34d399;
+      --orange:  #fb923c;
+      --text:    #f1f5f9;
+      --muted:   #94a3b8;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 48px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    header .badge {
+      display: inline-block;
+      background: var(--accent2);
+      color: #fff;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      letter-spacing: .08em;
+      margin-bottom: 16px;
+    }
+    header h1 { font-size: clamp(24px, 5vw, 40px); font-weight: 700; }
+    header p  { color: var(--muted); margin-top: 10px; }
+
+    /* 통계 요약 */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 36px;
+      text-align: center;
+      min-width: 140px;
+    }
+    .stat-card .num {
+      font-family: 'Space Mono', monospace;
+      font-size: 40px;
+      color: var(--accent);
+    }
+    .stat-card .label {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* 차트 그리드 */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 24px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+    }
+    .chart-card h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 24px;
+      color: var(--accent);
+      letter-spacing: .04em;
+    }
+    .chart-card canvas { max-height: 280px; }
+
+    .back-link {
+      text-align: center;
+      margin-top: 48px;
+    }
+    .back-link a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 12px 28px;
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      transition: background .2s, color .2s;
+    }
+    .back-link a:hover {
+      background: var(--accent);
+      color: var(--bg);
+    }
+
+    .loading {
+      text-align: center;
+      padding: 80px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+    .error-msg {
+      text-align: center;
+      padding: 40px;
+      color: #f87171;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">LIVE RESULTS</div>
+    <h1>설문 결과 대시보드</h1>
+    <p id="updated-at">데이터를 불러오는 중...</p>
+  </header>
+
+  <div class="stats" id="stats-area">
+    <div class="stat-card">
+      <div class="num" id="total-count">—</div>
+      <div class="label">총 응답 수</div>
+    </div>
+  </div>
+
+  <div class="grid" id="chart-area">
+    <div class="loading">⏳ 차트를 불러오는 중입니다...</div>
+  </div>
+
+  <div class="back-link">
+    <a href="/">← 설문 참여하기</a>
+  </div>
+
+  <script>
+    const COLORS_BAR  = ['#38bdf8','#818cf8','#34d399','#fb923c','#f472b6'];
+    const COLORS_PIE  = ['#34d399','#f87171','#fbbf24'];
+
+    Chart.defaults.color = '#94a3b8';
+    Chart.defaults.borderColor = '#334155';
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/data');
+        if (!res.ok) throw new Error('서버 오류');
+        const data = await res.json();
+
+        document.getElementById('total-count').textContent = data.total;
+        document.getElementById('updated-at').textContent =
+          `마지막 업데이트: ${new Date().toLocaleString('ko-KR')}`;
+
+        const area = document.getElementById('chart-area');
+        area.innerHTML = '';
+
+        // ── 만족도 차트 (Bar) ──────────────────────────────
+        const satisfactionOrder = ['매우불만족','불만족','보통','만족','매우만족'];
+        const satLabels  = satisfactionOrder.filter(k => data.satisfaction[k] !== undefined);
+        const satValues  = satLabels.map(k => data.satisfaction[k] || 0);
+
+        area.appendChild(createChartCard('😊 만족도 분포', (canvas) => {
+          new Chart(canvas, {
+            type: 'bar',
+            data: {
+              labels: satLabels,
+              datasets: [{
+                label: '응답 수',
+                data: satValues,
+                backgroundColor: COLORS_BAR,
+                borderRadius: 8,
+                borderSkipped: false,
+              }]
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 } }
+              }
+            }
+          });
+        }));
+
+        // ── 추천 여부 (Doughnut) ───────────────────────────
+        const recLabels = Object.keys(data.recommend);
+        const recValues = recLabels.map(k => data.recommend[k]);
+
+        area.appendChild(createChartCard('🔁 추천 의향', (canvas) => {
+          new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+              labels: recLabels,
+              datasets: [{
+                data: recValues,
+                backgroundColor: COLORS_PIE,
+                borderWidth: 2,
+                borderColor: '#1e293b',
+              }]
+            },
+            options: {
+              responsive: true,
+              cutout: '65%',
+              plugins: {
+                legend: { position: 'bottom', labels: { padding: 16 } }
+              }
+            }
+          });
+        }));
+
+        // ── 연령대 (Horizontal Bar) ────────────────────────
+        const ageOrder = ['10대','20대','30대','40대','50대 이상'];
+        const ageLabels = ageOrder.filter(k => data.age_group[k] !== undefined);
+        const ageValues = ageLabels.map(k => data.age_group[k] || 0);
+
+        area.appendChild(createChartCard('👥 연령대 분포', (canvas) => {
+          new Chart(canvas, {
+            type: 'bar',
+            data: {
+              labels: ageLabels,
+              datasets: [{
+                label: '응답 수',
+                data: ageValues,
+                backgroundColor: '#818cf8',
+                borderRadius: 8,
+                borderSkipped: false,
+              }]
+            },
+            options: {
+              indexAxis: 'y',
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: { beginAtZero: true, ticks: { stepSize: 1 } }
+              }
+            }
+          });
+        }));
+
+      } catch (err) {
+        document.getElementById('chart-area').innerHTML =
+          `<div class="error-msg">⚠️ 데이터를 불러오지 못했습니다.<br><small>${err.message}</small></div>`;
+      }
+    }
+
+    function createChartCard(title, renderFn) {
+      const card = document.createElement('div');
+      card.className = 'chart-card';
+      card.innerHTML = `<h2>${title}</h2><canvas></canvas>`;
+      // 카드가 DOM에 붙은 후 렌더링
+      setTimeout(() => renderFn(card.querySelector('canvas')), 0);
+      return card;
+    }
+
+    loadData();
+    // 60초마다 자동 갱신
+    setInterval(loadData, 60000);
+  </script>
+
+</body>
+</html>
