@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>설문조사</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #0f172a;
+      --surface: #1e293b;
+      --border:  #334155;
+      --accent:  #38bdf8;
+      --accent2: #818cf8;
+      --text:    #f1f5f9;
+      --muted:   #94a3b8;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 48px 16px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    header .badge {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--bg);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 999px;
+      letter-spacing: .08em;
+      margin-bottom: 16px;
+    }
+    header h1 {
+      font-size: clamp(24px, 5vw, 40px);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+    header p {
+      color: var(--muted);
+      margin-top: 10px;
+      font-size: 15px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 25px 60px rgba(0,0,0,.4);
+    }
+
+    .field { margin-bottom: 28px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    label span.req { color: var(--accent); margin-left: 3px; }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+      padding: 12px 16px;
+      outline: none;
+      transition: border-color .2s;
+    }
+    input[type="text"]:focus,
+    textarea:focus,
+    select:focus {
+      border-color: var(--accent);
+    }
+    textarea { resize: vertical; min-height: 100px; }
+    select option { background: var(--surface); }
+
+    /* 라디오 그룹 */
+    .radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .radio-group input[type="radio"] { display: none; }
+    .radio-group label {
+      cursor: pointer;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+      color: var(--muted);
+      transition: all .2s;
+      margin: 0;
+    }
+    .radio-group input[type="radio"]:checked + label {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(56,189,248,.08);
+    }
+
+    /* 만족도 이모지 */
+    .emoji-group {
+      display: flex;
+      gap: 12px;
+    }
+    .emoji-group input[type="radio"] { display: none; }
+    .emoji-group label {
+      cursor: pointer;
+      font-size: 28px;
+      padding: 10px 14px;
+      border: 2px solid transparent;
+      border-radius: 12px;
+      background: var(--bg);
+      transition: all .2s;
+      margin: 0;
+      text-transform: none;
+      letter-spacing: 0;
+    }
+    .emoji-group input[type="radio"]:checked + label {
+      border-color: var(--accent);
+      transform: scale(1.15);
+      background: rgba(56,189,248,.1);
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 32px 0;
+    }
+
+    button[type="submit"] {
+      width: 100%;
+      padding: 16px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+    }
+    button[type="submit"]:hover  { opacity: .88; }
+    button[type="submit"]:active { transform: scale(.98); }
+
+    .result-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .result-link a { color: var(--accent2); text-decoration: none; }
+    .result-link a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="badge">SURVEY 2025</div>
+    <h1>서비스 만족도 조사</h1>
+    <p>여러분의 소중한 의견을 들려주세요 🙏</p>
+  </header>
+
+  <div class="card">
+    <form action="/submit" method="POST">
+
+      <!-- 이름 -->
+      <div class="field">
+        <label>이름 <span class="req">*</span></label>
+        <input type="text" name="name" placeholder="홍길동" required />
+      </div>
+
+      <!-- 연령대 -->
+      <div class="field">
+        <label>연령대 <span class="req">*</span></label>
+        <div class="radio-group">
+          <input type="radio" name="age_group" id="a1" value="10대" required />
+          <label for="a1">10대</label>
+          <input type="radio" name="age_group" id="a2" value="20대" />
+          <label for="a2">20대</label>
+          <input type="radio" name="age_group" id="a3" value="30대" />
+          <label for="a3">30대</label>
+          <input type="radio" name="age_group" id="a4" value="40대" />
+          <label for="a4">40대</label>
+          <input type="radio" name="age_group" id="a5" value="50대 이상" />
+          <label for="a5">50대 이상</label>
+        </div>
+      </div>
+
+      <!-- 만족도 -->
+      <div class="field">
+        <label>전반적인 만족도 <span class="req">*</span></label>
+        <div class="emoji-group">
+          <input type="radio" name="satisfaction" id="s1" value="매우불만족" required />
+          <label for="s1" title="매우 불만족">😡</label>
+          <input type="radio" name="satisfaction" id="s2" value="불만족" />
+          <label for="s2" title="불만족">😞</label>
+          <input type="radio" name="satisfaction" id="s3" value="보통" />
+          <label for="s3" title="보통">😐</label>
+          <input type="radio" name="satisfaction" id="s4" value="만족" />
+          <label for="s4" title="만족">😊</label>
+          <input type="radio" name="satisfaction" id="s5" value="매우만족" />
+          <label for="s5" title="매우 만족">😍</label>
+        </div>
+      </div>
+
+      <!-- 추천 여부 -->
+      <div class="field">
+        <label>주변에 추천하시겠습니까? <span class="req">*</span></label>
+        <div class="radio-group">
+          <input type="radio" name="recommend" id="r1" value="예" required />
+          <label for="r1">✅ 예</label>
+          <input type="radio" name="recommend" id="r2" value="아니요" />
+          <label for="r2">❌ 아니요</label>
+          <input type="radio" name="recommend" id="r3" value="모르겠음" />
+          <label for="r3">🤷 모르겠음</label>
+        </div>
+      </div>
+
+      <hr class="divider" />
+
+      <!-- 의견 -->
+      <div class="field">
+        <label>추가 의견 (선택)</label>
+        <textarea name="comment" placeholder="자유롭게 의견을 남겨주세요..."></textarea>
+      </div>
+
+      <button type="submit">제출하기 →</button>
+    </form>
+  </div>
+
+  <p class="result-link">
+    이미 응답하셨나요? <a href="/results">결과 보기</a>
+  </p>
+
+</body>
+</html>
